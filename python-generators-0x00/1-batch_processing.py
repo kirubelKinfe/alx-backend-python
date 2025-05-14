@@ -1,24 +1,22 @@
 import mysql.connector
 from mysql.connector import Error
 
+
 def stream_users_in_batches(batch_size):
     """
-    Fetches user_data in batches from the database.
-    Returns a list of batches (each batch is a list of user dicts).
+    Generator function that yields batches of user_data rows from the database.
     """
-    batches = []
-
     try:
         connection = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='your_mysql_password',  # Replace with your actual password
+            password='your_mysql_password',  # Replace this with your actual password
             database='ALX_prodev'
         )
 
         if connection.is_connected():
             cursor = connection.cursor(dictionary=True)
-            cursor.execute("SELECT COUNT(*) as total FROM user_data")
+            cursor.execute("SELECT COUNT(*) AS total FROM user_data")
             total_rows = cursor.fetchone()['total']
 
             offset = 0
@@ -28,28 +26,25 @@ def stream_users_in_batches(batch_size):
                     (batch_size, offset)
                 )
                 rows = cursor.fetchall()
-                batches.append(rows)
+                if not rows:
+                    return  # Use of 'return' to stop early if something goes wrong
+                yield rows
                 offset += batch_size
 
     except Error as e:
-        print(f"Database error: {e}")
+        print(f"Error: {e}")
+        return  # Return early in case of a DB error
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
 
-    return batches
 
 def batch_processing(batch_size):
     """
-    Processes batches of users and returns those over the age of 25.
+    Generator function that yields users over age 25 from streamed batches.
     """
-    filtered_users = []
-    batches = stream_users_in_batches(batch_size)
-    
-    for batch in batches:
-        for user in batch:
+    for batch in stream_users_in_batches(batch_size):  # 1 loop
+        for user in batch:  # 2nd loop
             if user['age'] > 25:
-                filtered_users.append(user)
-
-    return filtered_users
+                yield user  # yield matching user
