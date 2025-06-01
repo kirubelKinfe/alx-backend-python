@@ -62,7 +62,7 @@ class TestGithubOrgClient(unittest.TestCase):
 
     @patch('client.get_json')
     @patch.object(GithubOrgClient, '_public_repos_url', new_callable=PropertyMock)
-    def test_public_repos_with_license(self, mock_repos_url, mock_get_json):
+    def test_has_license(self, mock_repos_url, mock_get_json):
         """Test public_repos filters repos by license key."""
         mock_repos_url.return_value = "https://api.github.com/orgs/testorg/repos"
         mock_get_json.return_value = [
