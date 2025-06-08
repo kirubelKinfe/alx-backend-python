@@ -1,111 +1,92 @@
-#!/usr/bin/python3
 import mysql.connector
-from mysql.connector import Error
 import csv
 import uuid
 
-DB_HOST = "localhost"
-DB_USER = "root"
-DB_PASSWORD = ""  # Replace with your password if any
-DB_NAME = "ALX_prodev"
-
-
 def connect_db():
-    """Connect to the MySQL server (no specific DB)"""
     try:
         connection = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD
+            host="localhost",
+            user="root",
+            password="root1234"  
         )
-        if connection.is_connected():
-            return connection
-    except Error as e:
-        print(f"Error connecting to MySQL: {e}")
-    return None
-
+        return connection
+    except mysql.connector.Error as err:
+        print(f"Error connecting to MySQL: {err}")
+        return None
 
 def create_database(connection):
-    """Create the ALX_prodev database if it doesn't exist"""
     try:
         cursor = connection.cursor()
-        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME};")
+        cursor.execute("CREATE DATABASE IF NOT EXISTS ALX_prodev")
         connection.commit()
-        print(f"Database {DB_NAME} created successfully or already exists.")
-    except Error as e:
-        print(f"Error creating database: {e}")
-    finally:
         cursor.close()
-
+    except mysql.connector.Error as err:
+        print(f"Error creating database: {err}")
 
 def connect_to_prodev():
-    """Connect to the ALX_prodev database"""
     try:
         connection = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
+            host="localhost",
+            user="root",
+            password="root@1234",  
+            database="ALX_prodev"
         )
-        if connection.is_connected():
-            return connection
-    except Error as e:
-        print(f"Error connecting to {DB_NAME} database: {e}")
-    return None
-
+        return connection
+    except mysql.connector.Error as err:
+        print(f"Error connecting to ALX_prodev: {err}")
+        return None
 
 def create_table(connection):
-    """Create the user_data table if it doesn't exist"""
     try:
         cursor = connection.cursor()
         create_table_query = """
         CREATE TABLE IF NOT EXISTS user_data (
-            user_id CHAR(36) PRIMARY KEY,
+            user_id VARCHAR(36) PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
             email VARCHAR(255) NOT NULL,
-            age DECIMAL NOT NULL,
-            INDEX (user_id)
-        );
+            age DECIMAL(5,2) NOT NULL,
+            INDEX idx_user_id (user_id)
+        )
         """
         cursor.execute(create_table_query)
         connection.commit()
         print("Table user_data created successfully")
-    except Error as e:
-        print(f"Error creating table: {e}")
-    finally:
         cursor.close()
-
+    except mysql.connector.Error as err:
+        print(f"Error creating table: {err}")
 
 def insert_data(connection, csv_file):
-    """Insert data from a CSV file into the user_data table"""
     try:
         cursor = connection.cursor()
-
-        # Read CSV data
-        with open(csv_file, mode='r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                user_id = row['user_id']
-                name = row['name']
-                email = row['email']
-                age = row['age']
-
-                # Check if record already exists
-                cursor.execute("SELECT user_id FROM user_data WHERE user_id = %s", (user_id,))
-                if cursor.fetchone():
-                    continue
-
-                # Insert new record
-                cursor.execute("""
-                    INSERT INTO user_data (user_id, name, email, age)
-                    VALUES (%s, %s, %s, %s);
-                """, (user_id, name, email, age))
-
+        with open(csv_file, 'r') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)  # Skip header row
+            for row in csv_reader:
+                # Generate UUID if not provided in CSV
+                user_id = str(uuid.uuid4()) if len(row) < 4 or not row[0] else row[0]
+                name = row[1] if len(row) > 1 else ""
+                email = row[2] if len(row) > 2 else ""
+                age = float(row[3]) if len(row) > 3 and row[3] else 0.0
+                
+                insert_query = """
+                INSERT IGNORE INTO user_data (user_id, name, email, age)
+                VALUES (%s, %s, %s, %s)
+                """
+                cursor.execute(insert_query, (user_id, name, email, age))
         connection.commit()
-        print("Data inserted successfully")
-    except Error as e:
-        print(f"Error inserting data: {e}")
-    except FileNotFoundError:
-        print(f"CSV file '{csv_file}' not found.")
-    finally:
         cursor.close()
+    except mysql.connector.Error as err:
+        print(f"Error inserting data: {err}")
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
+
+def stream_rows(connection):
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM user_data")
+        for row in cursor:
+            yield row
+        cursor.close()
+    except mysql.connector.Error as err:
+        print(f"Error streaming data: {err}")
+        return

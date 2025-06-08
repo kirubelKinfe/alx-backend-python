@@ -1,35 +1,35 @@
-import seed
-
+import mysql.connector
 
 def stream_user_ages():
-    """
-    Generator that yields user ages one at a time from the database.
-    """
-    connection = seed.connect_to_prodev()
-    cursor = connection.cursor()
-    cursor.execute("SELECT age FROM user_data")
-    for row in cursor:
-        yield row[0]  # row is a tuple (age,)
-    cursor.close()
-    connection.close()
-
+    try:
+        # Connect to the ALX_prodev database
+        connection = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="root1234",  
+            database="ALX_prodev"
+        )
+        cursor = connection.cursor()
+        
+        # Fetch ages one by one
+        cursor.execute("SELECT age FROM user_data")
+        for row in cursor:
+            yield float(row[0])  # Convert DECIMAL to float
+        cursor.close()
+        connection.close()
+        
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return
 
 def calculate_average_age():
-    """
-    Calculates and prints the average age using the stream_user_ages generator.
-    """
     total_age = 0
     count = 0
-    for age in stream_user_ages():  # Loop 1
+    for age in stream_user_ages():
         total_age += age
         count += 1
-
-    if count > 0:
-        average_age = total_age / count
-        print(f"Average age of users: {average_age:.2f}")
-    else:
-        print("No users found.")
-
+    average_age = total_age / count if count > 0 else 0
+    print(f"Average age of users: {average_age:.2f}")
 
 if __name__ == "__main__":
     calculate_average_age()

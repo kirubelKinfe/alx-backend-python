@@ -1,30 +1,32 @@
 import mysql.connector
-from mysql.connector import Error
 
 def stream_users():
-    """
-    Generator function to stream user_data rows one by one from the ALX_prodev database.
-    Yields:
-        dict: A dictionary with user_id, name, email, and age.
-    """
     try:
+        # Connect to the ALX_prodev database
         connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='your_mysql_password',
-            database='ALX_prodev'
+            host="localhost",
+            user="root",
+            password="root1234",  
+            database="ALX_prodev"
         )
-
-        if connection.is_connected():
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("SELECT user_id, name, email, age FROM user_data")
-
-            for row in cursor:
-                yield row
-
-    except Error as e:
-        print(f"Database error: {e}")
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
+        cursor = connection.cursor()
+        
+        # Execute query to fetch all rows from user_data
+        cursor.execute("SELECT user_id, name, email, age FROM user_data")
+        
+        # Fetch and yield each row as a dictionary
+        for row in cursor:
+            yield {
+                'user_id': row[0],
+                'name': row[1],
+                'email': row[2],
+                'age': int(row[3])  # Convert DECIMAL to int to match expected output
+            }
+        
+        # Clean up
+        cursor.close()
+        connection.close()
+        
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return
