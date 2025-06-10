@@ -1,3 +1,4 @@
+# chats/views.py
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,6 +7,8 @@ from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
 from django.shortcuts import get_object_or_404
 from .permissions import IsParticipantOfConversation
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 class ConversationViewSet(viewsets.ModelViewSet):
     """ViewSet for listing and creating conversations with filtering."""
@@ -14,6 +17,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsParticipantOfConversation]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['participants']
+
+    @method_decorator(cache_page(60))  # Cache for 60 seconds
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         """Create a new conversation and add the requesting user as a participant."""
@@ -36,6 +43,10 @@ class MessageViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['conversation']
 
+    @method_decorator(cache_page(60))  # Cache for 60 seconds
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def create(self, request, *args, **kwargs):
         """Create a new message with the requesting user as sender, using conversation from URL."""
         conversation_id = self.kwargs.get('conversation_conversation_id')
@@ -44,7 +55,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         
         try:
             conversation = Conversation.objects.get(conversation_id=conversation_id)
-            # Explicit permission check
             if not conversation.participants.filter(user_id=request.user.user_id).exists():
                 return Response({"detail": "You are not a participant in this conversation."}, status=status.HTTP_403_FORBIDDEN)
         except Conversation.DoesNotExist:
