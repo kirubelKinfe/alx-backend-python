@@ -89,7 +89,12 @@ def message_thread(request, message_id):
 @login_required
 def unread_messages(request):
     """View showing only unread messages for the current user"""
-    messages = Message.unread.for_user(request.user)
+    messages = Message.unread.unread_for_user(request.user).only(
+            'message_id',
+            'sender__username',
+            'content',
+            'timestamp'
+        )
     
     return render(request, 'messaging/unread.html', {
         'unread_messages': messages,

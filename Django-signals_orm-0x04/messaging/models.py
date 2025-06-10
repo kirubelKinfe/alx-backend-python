@@ -34,8 +34,6 @@ class Message(models.Model):
         self.save(update_fields=['read'])
 
 
-
-
     class Meta:
         ordering = ['-timestamp']
         indexes = [
