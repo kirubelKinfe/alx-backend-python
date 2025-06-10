@@ -24,7 +24,7 @@ class Message(models.Model):
     class Meta:
         verbose_name = "Message"
         verbose_name_plural = "Messages"
-        ordering = ['sent_at']
+        ordering = ['timestamp']
 
     def __str__(self):
-        return f"Message from {self.sender.username} in Conversation {self.conversation.conversation_id}"
+        return f"Message from {self.sender.username}"
