@@ -13,13 +13,13 @@ class Message(models.Model):
     sender = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='sent_messages',
+        related_name='messaging_sent_messages',
         help_text="The user who sent this message"
     )
     receiver = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='receive_messages',
+        related_name='messaging_receive_messages',
         help_text="The user who receive this message"
     )
     content = models.TextField(max_length=2000, help_text="Message content")
