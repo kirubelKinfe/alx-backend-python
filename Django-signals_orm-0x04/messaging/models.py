@@ -5,22 +5,11 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from .managers import UnreadMessagesManager
 
 User = get_user_model()
 
 
-class UnreadMessagesManager(models.Manager):
-    """Custom manager for unread messages"""
-    def for_user(self, user):
-        return self.get_queryset().filter(
-            receiver=user,
-            read=False
-        ).select_related('sender').only(
-            'message_id',
-            'sender__username',
-            'content',
-            'timestamp'
-        )
     
 class Message(models.Model):
     message_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
