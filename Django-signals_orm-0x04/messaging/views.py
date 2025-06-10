@@ -10,6 +10,8 @@ from django.contrib import messages
 from django.shortcuts import render, get_object_or_404
 from .models import Message
 from django.db.models import Q, Prefetch
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 User = get_user_model()
 
@@ -24,6 +26,7 @@ def delete_user(request):
 
 
 
+@method_decorator(cache_page(60))  # Cache for 60 seconds
 def conversation_view(request, recipient_id):
     """
     View for displaying a conversation thread between two users
@@ -54,6 +57,7 @@ def conversation_view(request, recipient_id):
     }
     return render(request, 'messaging/conversation.html', context)
 
+@method_decorator(cache_page(60))  # Cache for 60 seconds
 def message_thread(request, message_id):
     """
     View for displaying a single message thread with all replies
@@ -87,6 +91,7 @@ def message_thread(request, message_id):
 
 
 @login_required
+@method_decorator(cache_page(60))  # Cache for 60 seconds
 def unread_messages(request):
     """View showing only unread messages for the current user"""
     messages = Message.unread.unread_for_user(request.user).only(
