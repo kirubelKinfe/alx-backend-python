@@ -1,7 +1,9 @@
 # accounts/views.py
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.shortcuts import redirect
 from django.contrib import messages
 
@@ -80,3 +82,32 @@ def message_thread(request, message_id):
         'thread_messages': thread_messages,
     }
     return render(request, 'messaging/thread.html', context)
+
+
+
+
+@login_required
+def unread_messages(request):
+    """View showing only unread messages for the current user"""
+    messages = Message.unread.for_user(request.user)
+    
+    return render(request, 'messaging/unread.html', {
+        'unread_messages': messages,
+        'unread_count': messages.count()  # Efficient count
+    })
+
+
+
+@require_POST
+@login_required
+def mark_as_read(request, message_id):
+    """API endpoint to mark a message as read"""
+    try:
+        message = Message.objects.get(
+            message_id=message_id,
+            receiver=request.user
+        )
+        message.mark_as_read()
+        return JsonResponse({'status': 'success'})
+    except Message.DoesNotExist:
+        return JsonResponse({'status': 'error'}, status=404)

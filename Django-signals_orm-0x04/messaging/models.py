@@ -9,27 +9,51 @@ from django.contrib.contenttypes.models import ContentType
 User = get_user_model()
 
 
+class UnreadMessagesManager(models.Manager):
+    """Custom manager for unread messages"""
+    def for_user(self, user):
+        return self.get_queryset().filter(
+            receiver=user,
+            read=False
+        ).select_related('sender').only(
+            'message_id',
+            'sender__username',
+            'content',
+            'timestamp'
+        )
+    
 class Message(models.Model):
     message_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messaging_sent_messages')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messaging_received_messages')
+    
     content = models.TextField(max_length=2000)
     timestamp = models.DateTimeField(default=timezone.now)
-    parent_message = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='replies'
-    )
+    read = models.BooleanField(default=False)  # New field
+    parent_message = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     edited = models.BooleanField(default=False)
     last_edited = models.DateTimeField(null=True, blank=True)
+
+    # Managers
+    objects = models.Manager()  # Default manager
+    unread = UnreadMessagesManager()  # Custom manager for unread messages
+
+
+    def mark_as_read(self):
+        """Helper method to mark a message as read"""
+        self.read = True
+        self.save(update_fields=['read'])
+
+
+
 
     class Meta:
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['parent_message']),
             models.Index(fields=['sender', 'receiver']),
+            models.Index(fields=['read']),  # Index for better performance
+            models.Index(fields=['receiver', 'read']),
         ]
 
     def __str__(self):
