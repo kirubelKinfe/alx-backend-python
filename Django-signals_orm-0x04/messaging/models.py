@@ -7,31 +7,41 @@ from django.contrib.contenttypes.models import ContentType
 
 User = get_user_model()
 
+
 class Message(models.Model):
-    """Model to represent a message in a conversation."""
-    message_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, help_text="Unique identifier for the message")
-    sender = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='messaging_sent_messages',
-        help_text="The user who sent this message"
-    )
-    receiver = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='messaging_receive_messages',
-        help_text="The user who receive this message"
-    )
-    content = models.TextField(max_length=2000, help_text="Message content")
-    timestamp = models.DateTimeField(default=timezone.now, help_text="When the message was sent")
-    
-    class Meta:
-        verbose_name = "Message"
-        verbose_name_plural = "Messages"
-        ordering = ['timestamp']
+    message_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messaging_sent_messages')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messaging_received_messages')
+    content = models.TextField(max_length=2000)
+    timestamp = models.DateTimeField(default=timezone.now)
+    edited = models.BooleanField(default=False)  # New field to track edits
+    last_edited = models.DateTimeField(null=True, blank=True)  # When last edited
 
     def __str__(self):
         return f"Message from {self.sender.username}"
+
+class MessageHistory(models.Model):
+    """Stores historical versions of edited messages"""
+    original_message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='edits'
+    )
+    old_content = models.TextField()
+    edited_at = models.DateTimeField(auto_now_add=True)
+    edited_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='message_edits'
+    )
+
+    class Meta:
+        ordering = ['-edited_at']
+        verbose_name_plural = "Message History"
+
+    def __str__(self):
+        return f"Edit of {self.original_message} at {self.edited_at}"
     
 
 class Notification(models.Model):
