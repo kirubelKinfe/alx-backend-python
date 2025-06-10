@@ -19,7 +19,7 @@ class Message(models.Model):
         help_text="The user who receive this message"
     )
     content = models.TextField(max_length=2000, help_text="Message content")
-    sent_at = models.DateTimeField(default=timezone.now, help_text="When the message was sent")
+    timestamp = models.DateTimeField(default=timezone.now, help_text="When the message was sent")
     
     class Meta:
         verbose_name = "Message"
