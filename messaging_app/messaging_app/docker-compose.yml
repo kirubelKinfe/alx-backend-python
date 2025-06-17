@@ -11,7 +11,7 @@ services:
       - db
     volumes:
       - .:/app
-    command: ./entrypoint.sh
+    command: ["./entrypoint.sh"]  # Entrypoint script includes ["python3 manage.py runserver"]
 
   db:
     image: mysql:8.0
