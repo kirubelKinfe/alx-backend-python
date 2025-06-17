@@ -21,9 +21,9 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql  # Persist MySQL data using a named volume
     ports:
       - "3306:3306"
 
 volumes:
-  mysql_data:
+  mysql_data:  # Named volume for MySQL data persistence across container restarts
