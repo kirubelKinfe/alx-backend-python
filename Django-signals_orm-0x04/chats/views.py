@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
-from django.shortcuts import get_object_or_404
 from .permissions import IsParticipantOfConversation
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
