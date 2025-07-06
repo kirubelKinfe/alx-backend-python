@@ -1,25 +1,15 @@
-
-# messaging/signals.py
-from datetime import timezone
-from django.db.models.signals import post_save, pre_save, post_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Message, Notification, MessageHistory
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+from .models import Message, Notification
 
 @receiver(post_save, sender=Message)
 def create_message_notification(sender, instance, created, **kwargs):
-    """
-    Creates a notification when a new message is sent.
-    """
     if created:
         Notification.objects.create(
-            recipient=instance.receiver,
-            sender=instance.sender,
-            message=f"New message from {instance.sender.username}",
-            content_object=instance  # Links to the Message
+            user=instance.receiver,
+            message=instance
         )
+
 
 
 @receiver(pre_save, sender=Message)
@@ -42,8 +32,6 @@ def log_message_edit(sender, instance, **kwargs):
         except Message.DoesNotExist:
             pass  # New message being created
 
-
-
 @receiver(post_delete, sender=User)
 def cleanup_user_data(sender, instance, **kwargs):
     """
@@ -58,4 +46,4 @@ def cleanup_user_data(sender, instance, **kwargs):
     
     # Delete all notifications where user is recipient or sender
     Notification.objects.filter(recipient=instance).delete()
-    Notification.objects.filter(sender=instance).delete()        
+    Notification.objects.filter(sender=instance).delete() 

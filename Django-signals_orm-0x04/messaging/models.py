@@ -1,13 +1,31 @@
-import uuid
 from django.db import models
-from django.db.models import Prefetch
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 from django.utils import timezone
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
-from .managers import UnreadMessagesManager
 
 User = get_user_model()
+
+class MessageHistory(models.Model):
+    """Stores historical versions of edited messages"""
+    original_message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='edits'
+    )
+    old_content = models.TextField()
+    edited_at = models.DateTimeField(auto_now_add=True)
+    edited_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='message_edits'
+    )
+
+    class Meta:
+        ordering = ['-edited_at']
+        verbose_name_plural = "Message History"
+
+    def __str__(self):
+        return f"Edit of {self.original_message} at {self.edited_at}"
 
 
     
@@ -55,6 +73,7 @@ class Message(models.Model):
         return self.parent_message is not None
 
 
+
 class MessageQuerySet(models.QuerySet):
     def with_related_data(self):
         """Optimized query with all related data"""
@@ -84,74 +103,27 @@ class MessageQuerySet(models.QuerySet):
 # Attach the custom queryset to the model
 Message.objects = MessageQuerySet.as_manager()
 
-
-class MessageHistory(models.Model):
-    """Stores historical versions of edited messages"""
-    original_message = models.ForeignKey(
-        Message,
-        on_delete=models.CASCADE,
-        related_name='edits'
-    )
-    old_content = models.TextField()
-    edited_at = models.DateTimeField(auto_now_add=True)
-    edited_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='message_edits'
-    )
-
-    class Meta:
-        ordering = ['-edited_at']
-        verbose_name_plural = "Message History"
-
-    def __str__(self):
-        return f"Edit of {self.original_message} at {self.edited_at}"
-    
-
 class Notification(models.Model):
-    """Model to store user notifications"""
-    recipient = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='notifications',
-        help_text="User who receives the notification"
-    )
-    sender = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='sent_notifications',
-        help_text="User who triggered the notification"
-    )
-    message = models.CharField(
-        max_length=255,
-        help_text="Notification content"
-    )
-    is_read = models.BooleanField(
-        default=False,
-        help_text="Whether the notification has been read"
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="When the notification was created"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
     
-    # Generic foreign key to link to any model (like Message)
-    content_type = models.ForeignKey(
-        ContentType,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
-    )
-    object_id = models.PositiveIntegerField(null=True, blank=True)
-    content_object = GenericForeignKey('content_type', 'object_id')
-
     class Meta:
         ordering = ['-created_at']
-        verbose_name = "Notification"
-        verbose_name_plural = "Notifications"
-
+    
     def __str__(self):
-        return f"Notification for {self.recipient.username}"
+        return f"Notification for {self.user}: {self.message.content[:50]}"
+
+class MessageHistory(models.Model):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='history')
+    old_content = models.TextField()
+    edited_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        ordering = ['-edited_at']
+    
+    def __str__(self):
+        return f"Edit history for message {self.message.id} at {self.edited_at}"
+
+
